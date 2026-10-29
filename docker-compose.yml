@@ -25,7 +25,9 @@ services:
       - back-tier
 
   result:
-    build: ./result
+    build:
+      context: ./result
+      target: dev
     # use nodemon rather than node for local dev
     entrypoint: nodemon --inspect=0.0.0.0 server.js
     depends_on:
@@ -33,6 +35,7 @@ services:
         condition: service_healthy 
     volumes:
       - ./result:/usr/local/app
+      - /usr/local/app/node_modules
     ports:
       - "8081:80"
       - "127.0.0.1:9229:9229"

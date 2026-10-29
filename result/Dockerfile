@@ -1,20 +1,16 @@
-FROM node:18-slim
-
-# add curl for healthcheck
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl tini && \
-    rm -rf /var/lib/apt/lists/*
+# Use a supported Node.js LTS runtime
+FROM node:22-bookworm-slim AS base
 
 WORKDIR /usr/local/app
 
-# have nodemon available for local dev use (file watching)
-RUN npm install -g nodemon
-
+# Install the application dependencies from the lockfile
 COPY package*.json ./
+RUN npm ci && npm cache clean --force
 
-RUN npm ci && \
- npm cache clean --force && \
- mv /usr/local/app/node_modules /node_modules
+# Development stage
+FROM base AS dev
+
+RUN npm install --global nodemon
 
 COPY . .
 
@@ -22,4 +18,18 @@ ENV PORT=80
 EXPOSE 80
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["node", "server.js"]
+CMD ["nodemon", "--inspect=0.0.0.0:9229", "server.js"]
+
+# Production stage
+FROM base AS production
+
+ENV NODE_ENV=production
+ENV PORT=80
+
+COPY --chown=node:node . .
+
+USER node
+
+EXPOSE 80
+
+ENTRYPOINT ["node", "server.js"]
