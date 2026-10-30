@@ -92,3 +92,41 @@ jobs:
           target: ${{ matrix.target }}
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/voting-app-${{ matrix.service }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    needs: build-scan-publish
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      AWS_REGION: eu-west-1
+      CLUSTER_NAME: voting-app-capstone
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Connect to the cluster
+        run: aws eks update-kubeconfig --region "$AWS_REGION" --name "$CLUSTER_NAME"
+
+      - name: Deploy with Helm (rolls back by itself if unhealthy)
+        run: |
+          helm upgrade --install voting-app helm/voting-app \
+            --set imageTag=${{ github.sha }} \
+            --atomic --timeout 5m
+
+      - name: Show result
+        run: |
+          helm history voting-app
+          kubectl get pods
