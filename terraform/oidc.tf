@@ -4,6 +4,12 @@ variable "github_repo" {
   default     = "basitol/example-voting-app"
 }
 
+variable "github_oidc_subject" {
+  description = "Exact OIDC subject GitHub sends for this repo's main branch"
+  type        = string
+  default     = "repo:basitol@41623944/example-voting-app@1438720249:ref:refs/heads/main"
+}
+
 # Lets AWS trust logins that come from GitHub Actions
 resource "aws_iam_openid_connect_provider" "github" {
   url            = "https://token.actions.githubusercontent.com"
@@ -23,7 +29,7 @@ resource "aws_iam_role" "github_deploy" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = var.github_oidc_subject
         }
       }
     }]
