@@ -1,0 +1,48 @@
+{{- $tag := required "set imageTag (or result.tag)" (default .Values.imageTag .Values.result.tag) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: result
+  labels:
+    app: result
+spec:
+  replicas: {{ .Values.result.replicas }}
+  selector:
+    matchLabels:
+      app: result
+  template:
+    metadata:
+      labels:
+        app: result
+    spec:
+      containers:
+        - name: result
+          image: "{{ .Values.imageRegistry }}/voting-app-result:{{ $tag }}"
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: result
+  labels:
+    app: result
+spec:
+  type: {{ .Values.result.service.type }}
+  selector:
+    app: result
+  ports:
+    - port: {{ .Values.result.service.port }}
+      targetPort: 80

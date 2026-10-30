@@ -1,0 +1,32 @@
+# Registry/owner that CI pushes to (images are voting-app-<service>:<commit sha>)
+imageRegistry: ghcr.io/basitol
+
+# Required. Set at install time, e.g. --set imageTag=$(git rev-parse HEAD)
+imageTag: ""
+
+vote:
+  replicas: 2
+  tag: ""            # optional per-service override of imageTag
+  service:
+    type: LoadBalancer
+    port: 80
+
+result:
+  replicas: 1        # keep at 1: result uses websockets without sticky sessions
+  tag: ""
+  service:
+    type: LoadBalancer
+    port: 80
+
+worker:
+  replicas: 1
+  tag: ""
+
+redis:
+  image: redis:7-alpine
+
+db:
+  image: postgres:15-alpine
+  # Demo credentials: the vote/result/worker code hardcodes postgres/postgres.
+  user: postgres
+  password: postgres
